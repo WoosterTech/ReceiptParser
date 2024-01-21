@@ -1,0 +1,73 @@
+# exclude: "/migrations/"
+default_stages: [commit]
+
+default_language_version:
+  python: python3.11
+repos:
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.15.0
+    hooks:
+      - id: pyupgrade
+        args:
+          [
+            "--py36-plus",
+            "--py37-plus",
+            "--py38-plus",
+            "--py39-plus",
+            "--py310-plus",
+            "--py311-plus",
+          ]
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      # See https://pre-commit.com/hooks.html for more hooks
+      - id: check-ast
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-merge-conflict
+      - id: debug-statements
+      - id: end-of-file-fixer
+        # files:
+        # exclude-types: [css]
+      # - id: name-tests-test
+      #   args: ["--django"]
+      - id: trailing-whitespace
+      - id: detect-private-key
+      # - id: requirements-txt-fixer
+  # - repo: https://github.com/adamchainz/django-upgrade
+  #   rev: 1.14.0
+  #   hooks:
+  #     - id: django-upgrade
+  #       args: [--target-version, "4.2"]
+  # - repo: https://github.com/pycqa/isort
+  #   rev: 5.12.0
+  #   hooks:
+  #       - id: isort
+  # - repo: https://github.com/psf/black
+  #   rev: 23.10.0
+  #   hooks:
+  #     - id: black
+  #       # exclude: (sgi.py$|apps.py$|urls.py$|/static/)
+  #       language_version: python3.11
+  # - repo: https://github.com/pycqa/flake8
+  #   rev: 6.0.0
+  #   hooks:
+  #       - id: flake8
+  #         exclude: (sgi.py$|apps.py$|/static/|urls.py$)
+  #         additional_dependencies:
+  #             [
+  #                 "flake8-bugbear",
+  #                 "flake8-comprehensions",
+  #                 "flake8-mutable",
+  #                 "flake8-print",
+  #                 "flake8-simplify",
+  #             ]
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.13
+    hooks:
+      - id: ruff
+
+ci:
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false

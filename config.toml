@@ -1,0 +1,6 @@
+[vendors]
+list = ["Costco", "Walmart", "Target"]
+
+[upload]
+allowed_file_types = ["pdf", "jpg", "png"]
+location = "uploads"

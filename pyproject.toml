@@ -1,0 +1,79 @@
+[tool.black]
+# extend-exclude = '(/migrations|apps.py| *sgi.py|__init__.py| *urls.py)'
+# line-lengh = 88
+target-version = ['py311']
+
+# [tool.isort]
+# profile = "black"
+# multi_line_output = 3
+# line_length = 88
+# skip_glob = ["migrations/"]
+# # extend_skip_glob = ["migrations/"]
+# default_section = "THIRDPARTY"
+# known_first_party = ["api", "user"]
+# known_third_party = ["furl", "benedict", "django_listview_filters"]
+
+# [tool.djlint]
+# profile = "django"
+
+[tool.ruff]
+select = [
+    "B",
+    "C4",
+    "C9",
+    "COM",
+    # "DJ",
+    "D",
+    "E",
+    "F",
+    "I",
+    "T2",
+    "W",
+    "N",
+    "PTH",
+    "Q",
+    # "RET",
+    "S",
+    "SIM",
+    "TD",
+    "TID",
+    "UP",
+] # extend-exclude = ["migrations"]
+ignore = ["T20", "D417", "D10"]
+fix = true
+fixable = ["E", "COM812", "I", "UP032", "UP035"]
+unfixable = ["F841"]
+line-length = 88
+ignore-init-module-imports = true
+target-version = "py311"
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.mccabe]
+max-complexity = 10
+
+[tool.poetry]
+name = "receiptparser"
+version = "0.1.0"
+description = "Parse PDF reciepts to generate CSV files."
+authors = ["Karl Wooster <karl@woostertech.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+coverage = "^7.4.0"
+ruff = "^0.1.11"
+pre-commit = "^3.6.0"
+pymupdf = "^1.23.8"
+pytesseract = "^0.3.10"
+opencv-python = "^4.9.0.80"
+flask = "^3.0.1"
+toml = "^0.10.2"
+pandas = "^2.2.0"
+flask-bootstrap = "^3.3.7.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
