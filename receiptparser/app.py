@@ -1,9 +1,10 @@
+import io
 import logging
 import sys
 from pathlib import Path
 
 import toml
-from flask import Flask, flash, render_template, request
+from flask import Flask, flash, render_template, request, send_file
 from flask_bootstrap import Bootstrap
 
 from receiptparser.extractors import (
@@ -38,16 +39,9 @@ app.config["ALLOWED_EXTENSIONS"] = config["upload"]["allowed_file_types"]
 def allowed_file(filename):
     logger.debug(f"filename.rsplit(\".\", 1): {filename.rsplit('.', 1)}")
     logger.debug(f"filename.rsplit(\".\", 1)[1]: {filename.rsplit('.', 1)[1]}")
-    logger.debug(
-        f"filename.rsplit(\".\", 1)[1].lower(): {filename.rsplit('.', 1)[1].lower()}",
-    )
-    logger.debug(
-        f"app.config[\"ALLOWED_EXTENSIONS\"]: {app.config['ALLOWED_EXTENSIONS']}",
-    )
-    return (
-        "." in filename
-        and filename.rsplit(".", 1)[1].lower() in app.config["ALLOWED_EXTENSIONS"]
-    )
+    logger.debug(f"filename.rsplit(\".\", 1)[1].lower(): {filename.rsplit('.', 1)[1].lower()}")
+    logger.debug(f"app.config[\"ALLOWED_EXTENSIONS\"]: {app.config['ALLOWED_EXTENSIONS']}")
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in app.config["ALLOWED_EXTENSIONS"]
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -61,22 +55,34 @@ def upload_file():
         if uploaded_file and allowed_file(uploaded_file.filename):
             file_path = upload_location / uploaded_file.filename
             uploaded_file.save(file_path)
-            receipt_obj = ReceiptObject(vendor=selected_vendor)
+            receipt_obj = ReceiptObject(vendor=selected_vendor, upload_filename=uploaded_file.name)
             processed_data = receipt_obj.set_items(file_path)
-            processed_data = processed_data.to_html(
-                classes="table table-striped",
-                header=True,
-            )
         else:
             flash(
                 f"Invalid file type. Allowed file types are: {', '.join(app.config['ALLOWED_EXTENSIONS'])}",  # noqa: E501
             )
 
-    return render_template(
-        "upload.html",
-        vendors=vendors,
-        processed_data=processed_data,
-    )
+    match request.form["output_type"]:
+        case "html":
+            processed_data = processed_data.to_html(
+                classes="table table-striped",
+                header=True,
+                index=False,
+            )
+            return render_template(
+                "upload.html",
+                vendors=vendors,
+                processed_data=processed_data,
+            )
+        case "csv":
+            processed_data = processed_data.to_csv(index=False)
+            output_filename = f"{receipt_obj.upload_filename}"
+            return send_file(
+                io.BytesIO(processed_data.encode("utf-8")),
+                mimetype="text/csv",
+                as_attachment=True,
+                download_name=f"{output_filename}.csv",
+            )
 
 
 if __name__ == "__main__":

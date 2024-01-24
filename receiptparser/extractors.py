@@ -57,9 +57,7 @@ class CostcoReceiptItem(ReceiptItem):
         super().__init__(identifier, description, price, category, tax_code)
         self.coupon = coupon
         self.original_price = original_price
-        self.price = (
-            self.final_price() if (self.coupon and self.original_price) else self.price
-        )
+        self.price = self.final_price() if (self.coupon and self.original_price) else self.price
 
     def final_price(self):
         return self.original_price - self.coupon
@@ -69,20 +67,30 @@ class ReceiptObject:
     def __init__(
         self,
         date: date = None,
+        upload_filename: str = "",
+        receipt_total: Decimal = 0,
         items=None,
         tax_rate: float = 0.0089,
         vendor: str = "",
     ):
         self.date = date
+        self.upload_filename = str(Path(upload_filename).stem)
+        self.receipt_total = receipt_total
         self.items = items
         self.tax_rate = tax_rate
         self.vendor = vendor
+
+        # if isinstance(self.upload_filename, Path):
+        #     self.upload_filename = str(self.upload_filename.stem)
+
+        if self.upload_filename:
+            self.set_metadata_from_filename()
 
     def set_items(self, filepath: Path):
         match self.vendor.lower():
             case "costco":
                 receipt_text = get_costco_text(filepath)
-                matches = get_pattern_matches(receipt_text, REGEX_PATTERNS["costco"])
+                matches = get_receipt_lines(receipt_text, REGEX_PATTERNS["costco"])
                 items = [format_costco_line(match) for match in matches]
                 self.items = DataFrame.from_dict(items)
             case "target":
@@ -96,8 +104,40 @@ class ReceiptObject:
 
         return self.items
 
+    def set_metadata_from_filename(self):
+        metadata_dict = grab_receipt_metadata(str(self.upload_filename))
+        self.date = metadata_dict.get("transaction_date") if not self.date else self.date
+        self.receipt_total = metadata_dict.get("transaction_total") if not self.receipt_total else self.receipt_total
 
-def get_pattern_matches(text: str, pattern: str):
+
+def grab_receipt_metadata(filename: str):
+    """Use filename to determine transaction date, vendor, and transaction total.
+
+    Args:
+        filename (str): Uploaded file filename; no folder if string
+
+    Returns:
+        dict: {
+            "transaction_date": date,
+            "vendor": str,
+            "transaction_total": Decimal
+        }
+    """
+    if isinstance(filename, str):
+        # "YYYYMMDD vendor xx.xx"
+        pattern = r"(\d{8})\s+([a-zA-Z\s]+)\s+(\d+\.\d{2})"
+        # pattern = r"(\d{8})\s(\w+)\s(\d+.\d{0,2})"
+
+        receipt_date, receipt_vendor, receipt_total = re.match(pattern, filename)
+
+        receipt_date = date.strftime(receipt_date, "%Y%m%d")
+
+        return {"transaction_date": receipt_date, "vendor": receipt_vendor, "transaction_total": receipt_total}
+    else:
+        raise ValueError(f"Filename must be a string, not {type(filename)}")
+
+
+def get_receipt_lines(text: str, pattern: str):
     matches = re.findall(pattern, text)
     lines = []
 
@@ -223,9 +263,7 @@ def target_extract_info(pdf_path) -> list[ReceiptItem]:
 
 
 def walmart_extract_info(pdf_path: Path) -> list[ReceiptItem]:
-    pytesseract.pytesseract.tesseract_cmd = (
-        r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-    )
+    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
     path = str(pdf_path)
 

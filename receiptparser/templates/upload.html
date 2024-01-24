@@ -14,6 +14,10 @@
         {% for vendor in vendors %}
         <option value="{{ vendor }}">{{ vendor }}</option>
         {% endfor %}</select
+        <select name="output_type" required>
+          <option value="html">{{ Web Table }}</option>
+          <option value="csv">{{ CSV/Excel }}</option>
+        </select>
       ><br /><br />
       <input type="submit" value="Upload" />
     </form>
