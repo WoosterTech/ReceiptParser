@@ -5,8 +5,12 @@
       "type": "python",
       "request": "launch",
       "module": "flask",
-      "env": { "FLASK_APP": "receiptparser\\app.py", "FLASK_DEBUG": "1" },
-      "args": ["run", "--no-debugger", "--no-reload"],
+      "env": {
+        "FLASK_APP": "receiptparser\\app.py",
+        "FLASK_DEBUG": "1",
+        "SECRET_KEY": "test_secret_key"
+      },
+      "args": ["run", "--no-reload"],
       "jinja": true,
       "justMyCode": true
     },

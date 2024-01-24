@@ -1,4 +1,6 @@
+import logging
 import re
+import sys
 from datetime import date
 from datetime import datetime as dt
 from decimal import Decimal
@@ -9,10 +11,20 @@ import fitz
 import pytesseract
 from pandas import DataFrame
 
+logging.basicConfig(filename="extractor.log", level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.StreamHandler(sys.stdout))
+
 # from pytesseract import Output
 
 # import list
 # from extract import ReceiptItem
+
+
+class FileNameError(ValueError):
+    def __init__(self, filename: str = "", *args: object) -> None:
+        super().__init__(*args)
+        self.filename = filename
 
 
 class ReceiptItem:
@@ -84,7 +96,10 @@ class ReceiptObject:
         #     self.upload_filename = str(self.upload_filename.stem)
 
         if self.upload_filename:
-            self.set_metadata_from_filename()
+            try:
+                self.set_metadata_from_filename()
+            except FileNameError:
+                raise
 
     def set_items(self, filepath: Path):
         match self.vendor.lower():
@@ -105,7 +120,10 @@ class ReceiptObject:
         return self.items
 
     def set_metadata_from_filename(self):
-        metadata_dict = grab_receipt_metadata(str(self.upload_filename))
+        try:
+            metadata_dict = grab_receipt_metadata(str(self.upload_filename))
+        except FileNameError:
+            raise
         self.date = metadata_dict.get("transaction_date") if not self.date else self.date
         self.receipt_total = metadata_dict.get("transaction_total") if not self.receipt_total else self.receipt_total
 
@@ -128,9 +146,20 @@ def grab_receipt_metadata(filename: str):
         pattern = r"(\d{8})\s+([a-zA-Z\s]+)\s+(\d+\.\d{2})"
         # pattern = r"(\d{8})\s(\w+)\s(\d+.\d{0,2})"
 
-        receipt_date, receipt_vendor, receipt_total = re.match(pattern, filename)
+        logging.debug(f"Pattern for filename regex: {pattern}")
 
-        receipt_date = date.strftime(receipt_date, "%Y%m%d")
+        matches = re.match(pattern, filename)
+
+        logging.debug(f"Filename regex matches: {matches}")
+
+        try:
+            receipt_date = matches[1]
+            receipt_vendor = matches[2]
+            receipt_total = matches[3]
+        except TypeError:
+            raise FileNameError() from TypeError
+
+        receipt_date = dt.strptime(receipt_date, "%Y%m%d")
 
         return {"transaction_date": receipt_date, "vendor": receipt_vendor, "transaction_total": receipt_total}
     else:
