@@ -1,6 +1,6 @@
 {
   "[python]": {
-    "editor.rulers": [119],
+    "editor.rulers": [88],
     "editor.formatOnType": true,
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.codeActionsOnSave": {

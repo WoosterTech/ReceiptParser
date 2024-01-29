@@ -1,3 +1,20 @@
+[tool.bumpversion]
+current_version = "0.1.0"
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
+serialize = ["{major}.{minor}.{patch}"]
+search = "{current_version}"
+replace = "{new_version}"
+regex = false
+ignore_missing_version = false
+tag = true
+sign_tags = false
+tag_name = "v{new_version}"
+tag_message = "Bump version: {current_version} → {new_version}"
+allow_dirty = false
+commit = false
+message = "Bump version: {current_version} → {new_version}"
+commit_args = ""
+
 [tool.ruff]
 select = [
     "B",
@@ -21,11 +38,11 @@ select = [
     "TID",
     "UP",
 ] # extend-exclude = ["migrations"]
-ignore = ["T20", "D417", "D10"]
+ignore = ["T20", "D417", "D10", "TD002", "TD003"]
 fix = true
 fixable = ["E", "COM812", "I", "UP032", "UP035"]
 unfixable = ["F841"]
-line-length = 119
+line-length = 88
 ignore-init-module-imports = true
 target-version = "py311"
 
@@ -45,16 +62,37 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 coverage = "^7.4.0"
-ruff = "^0.1.11"
 pre-commit = "^3.6.0"
 pymupdf = "^1.23.8"
 pytesseract = "^0.3.10"
 opencv-python = "^4.9.0.80"
-flask = "^3.0.1"
+flask = {extras = ["async"], version = "^3.0.1"}
 toml = "^0.10.2"
 pandas = "^2.2.0"
-flask-bootstrap = "^3.3.7.1"
+azure-ai-documentintelligence = "1.0.0b1"
+python-dotenv = "^1.0.1"
+bump-my-version = "^0.17.2"
+bootstrap-flask = "^2.3.3"
 
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.1.11"
+mypy = "^1.8.0"
+types-toml = "^0.10.8.7"
+pandas-stubs = "^2.1.4.231227"
+types-requests = "^2.31.0.20240125"
+types-colorama = "^0.4.15.20240106"
+types-pytz = "^2023.3.1.1"
+types-openpyxl = "^3.1.0.20240106"
+
+[tool.mypy]
+files = "**/receiptparser/app.py, **/receiptparser/doc_intel_receipt.py, **/out"
+
+[tool.mypy-receiptparser.extractors]
+ignore_errors = true
+
+[tool.mypy-receiptparser.extract]
+ignore_errors = true
 
 [build-system]
 requires = ["poetry-core"]

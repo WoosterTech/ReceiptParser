@@ -6,7 +6,7 @@
   </head>
   <body>
     <h1>Upload a File and Choose a Vendor</h1>
-    <form method="POST" enctype="multipart/form-data">
+    <form method="POST" enctype="multipart/form-data" async>
       <label for="file">Select File:</label>
       <input type="file" name="file" required /><br /><br />
       <label for="vendor">Choose Vendor:</label>
@@ -23,6 +23,13 @@
       <input type="submit" value="Upload" />
     </form>
 
-    {% if processed_data %} {{processed_data|safe}} {% endif %}
+    {% if processed_data %} {{processed_data|safe}} {% elif processed_data is
+    none %}
+    <p id="loading-message">Analysis in progress. Please wait...</p>
+    {% endif %}
+
+    <script>
+      document.getElementById("loading-message").style.display = "none";
+    </script>
   </body>
 </html>

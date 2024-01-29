@@ -45,7 +45,7 @@ class ReceiptItem:
         identifier: str,
         description: str,
         price: Decimal,
-        category: str,
+        category: str | None,
         tax_code: str,
     ):
         self.identifier = identifier
@@ -69,7 +69,9 @@ class CostcoReceiptItem(ReceiptItem):
         super().__init__(identifier, description, price, category, tax_code)
         self.coupon = coupon
         self.original_price = original_price
-        self.price = self.final_price() if (self.coupon and self.original_price) else self.price
+        self.price = (
+            self.final_price() if (self.coupon and self.original_price) else self.price
+        )
 
     def final_price(self):
         return self.original_price - self.coupon
@@ -124,8 +126,14 @@ class ReceiptObject:
             metadata_dict = grab_receipt_metadata(str(self.upload_filename))
         except FileNameError:
             raise
-        self.date = metadata_dict.get("transaction_date") if not self.date else self.date
-        self.receipt_total = metadata_dict.get("transaction_total") if not self.receipt_total else self.receipt_total
+        self.date = (
+            metadata_dict.get("transaction_date") if not self.date else self.date
+        )
+        self.receipt_total = (
+            metadata_dict.get("transaction_total")
+            if not self.receipt_total
+            else self.receipt_total
+        )
 
 
 def grab_receipt_metadata(filename: str):
@@ -161,7 +169,11 @@ def grab_receipt_metadata(filename: str):
 
         receipt_date = dt.strptime(receipt_date, "%Y%m%d")
 
-        return {"transaction_date": receipt_date, "vendor": receipt_vendor, "transaction_total": receipt_total}
+        return {
+            "transaction_date": receipt_date,
+            "vendor": receipt_vendor,
+            "transaction_total": receipt_total,
+        }
     else:
         raise ValueError(f"Filename must be a string, not {type(filename)}")
 
@@ -292,7 +304,9 @@ def target_extract_info(pdf_path) -> list[ReceiptItem]:
 
 
 def walmart_extract_info(pdf_path: Path) -> list[ReceiptItem]:
-    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    pytesseract.pytesseract.tesseract_cmd = (
+        r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    )
 
     path = str(pdf_path)
 
