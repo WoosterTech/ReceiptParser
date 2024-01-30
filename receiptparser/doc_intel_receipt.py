@@ -2,8 +2,6 @@ import os
 from pathlib import Path
 
 from azure.ai.documentintelligence import DocumentIntelligenceClient
-
-# // from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
 from azure.core.credentials import AzureKeyCredential
 from dotenv import load_dotenv
 
@@ -18,7 +16,6 @@ class MissingEnvironmentVariableError(Exception):
 
 
 def analyze_receipt(filepath: Path | str):  # noqa: C901
-    # // invoice_url =
     # "https://raw.githubusercontent.com/Azure-Samples/cognitive-services-REST-api-samples/master/curl/form-recognizer/sample-invoice.pdf"\
 
     if not ENDPOINT:
@@ -44,21 +41,3 @@ def analyze_receipt(filepath: Path | str):  # noqa: C901
     receipts = poller.result()
 
     return receipts
-
-    # for idx, receipt in enumerate(receipts.documents):
-    #     print(f"-------Recognizing receipt #{idx+1}-----------")
-    #     receipt_type = receipt.doc_type
-    #     if receipt_type:
-    #         print(f"Receipt Type: {receipt_type}")
-    #     merchant_name = receipt.fields.get("MerchantName")
-    #     if merchant_name:
-    #         print(
-    #             f"Merchant Name: {merchant_name} with "
-    #             f"{merchant_name.confidence} confidence.",
-    #         )
-
-    #     print("----------------------------------------")
-
-
-# if __name__ == "__main__":
-#     analyze_invoice()

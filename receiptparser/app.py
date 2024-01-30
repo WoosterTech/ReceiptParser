@@ -1,4 +1,4 @@
-import asyncio
+# import asyncio
 import csv
 import io
 
@@ -13,7 +13,7 @@ import toml
 from dotenv import load_dotenv
 from flask import (
     Flask,
-    copy_current_request_context,
+    # copy_current_request_context,
     flash,
     render_template,
     request,
@@ -87,85 +87,67 @@ def upload_file():  # noqa: C901
             logger.debug(f"Upload filepath: {file_path}")
             uploaded_file.save(file_path)
             filename = uploaded_file.filename
-            items = []
+            items_dict: list[dict] = []
 
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-            @copy_current_request_context
-            async def process_receipt(file_path):
-                nonlocal processed_data
-
-                try:
-                    receipts = await loop.run_in_executor(
-                        None,
-                        analyze_receipt,
-                        file_path,
+            try:
+                receipts = analyze_receipt(file_path)
+            except Exception:
+                raise
+            for _receipt_idx, receipt in enumerate(receipts.documents):
+                logger.info(f"Receipt Type: {receipt.doc_type}")
+                # json_object = json.dumps(receipt, indent=4)
+                # with Path.open(upload_location / filename, ".json") as json_file:  # noqa: E501
+                #     json_file.write(json_object)
+                merchant_name = receipt.fields.get("MerchantName")
+                if merchant_name:
+                    logger.info(
+                        f"Merchant Name: {merchant_name.value_string} with "
+                        f"{merchant_name.confidence:.1%} confidence.",
                     )
-                    for _receipt_idx, receipt in enumerate(receipts.documents):
-                        logger.info(f"Receipt Type: {receipt.doc_type}")
-                        # json_object = json.dumps(receipt, indent=4)
-                        # with Path.open(upload_location / filename, ".json") as json_file:  # noqa: E501
-                        #     json_file.write(json_object)
-                        merchant_name = receipt.fields.get("MerchantName")
-                        if merchant_name:
-                            logger.info(
-                                f"Merchant Name: {merchant_name.value_string} with "
-                                f"{merchant_name.confidence:.1%} confidence.",
-                            )
-                        transaction_date = receipt.fields.get("TransactionDate")
-                        if transaction_date:
-                            logger.info(
-                                f"Transaction Date {transaction_date.value_string} with"
-                                f" {transaction_date.confidence:%1} confidence.",
-                            )
+                transaction_date = receipt.fields.get("TransactionDate")
+                if transaction_date:
+                    logger.info(
+                        f"Transaction Date {transaction_date.value_string} with"
+                        f" {transaction_date.confidence:1%} confidence.",
+                    )
 
-                        items = receipt.fields.get("Items").value_array
-                        if receipt.fields.get("Items"):
-                            for _item_idx, item in enumerate(
-                                items,
-                            ):
-                                item_object = item.value_object
-                                product_code = item_object.get(
-                                    "ProductCode",
-                                ).value_string
-                                logger.debug(
-                                    f"Item {item_object} has product code "
-                                    f"{product_code}.",
-                                )
-                                description = item_object.get(
-                                    "Description",
-                                ).value_string
-                                total_price = item_object.get(
-                                    "TotalPrice",
-                                ).value_currency.amount
-                                costco_tax_pattern = r"\s\d+.\d{2}\s([Y,N])?$"
-                                matches = re.match(
-                                    costco_tax_pattern,
-                                    item.content,
-                                )
-                                taxable_status = matches[0] == "Y" if matches else False
-                                item_dict = {
-                                    "product_code": product_code,
-                                    "description": description,
-                                    "total_price": total_price,
-                                    "taxable": taxable_status,
-                                }
-                                items.append(item_dict)
-                except Exception:
-                    raise
-                    # processed_data = None
-                    # flash(
-                    #     f"Filename `{filename}` does not match pattern "
-                    #     '"YYYYMMDD vendor 123.45".',
-                    # )
-                    # return render_template(
-                    #     "upload.html",
-                    #     vendors=vendors,
-                    #     processed_data=processed_data,
-                    # )
+                # parse items
+                items = receipt.fields.get("Items").value_array
+                if receipt.fields.get("Items"):
+                    for _item_idx, item in enumerate(
+                        items,
+                    ):
+                        try:
+                            item_object = item.value_object
+                            product_code = item_object.get(
+                                "ProductCode",
+                            ).value_string
+                        except AttributeError:
+                            continue
 
-            loop.run_until_complete(process_receipt(file_path))
+                        logger.debug(
+                            f"Item {item_object} has product code " f"{product_code}.",
+                        )
+                        description = item_object.get(
+                            "Description",
+                        ).value_string
+                        total_price = item_object.get(
+                            "TotalPrice",
+                        ).value_currency.amount
+                        costco_tax_pattern = r"\s\d+.\d{2}\s([Y,N])?$"
+                        matches = re.match(
+                            costco_tax_pattern,
+                            item.content,
+                        )
+                        taxable_status = matches[0] == "Y" if matches else False
+                        item_dict = {
+                            "product_code": product_code,
+                            "description": description,
+                            "total_price": total_price,
+                            "taxable": taxable_status,
+                        }
+                        items_dict.append(item_dict)
+
         else:
             flash(
                 f"Invalid file type. Allowed file types are: {', '.join(app.config['ALLOWED_EXTENSIONS'])}",  # noqa: E501
@@ -189,15 +171,16 @@ def upload_file():  # noqa: C901
                     processed_data=processed_data,
                 )
             case "csv":
-                keys = items[0].keys()
+                keys = items_dict[0].keys()
 
-                writer = csv.DictWriter(fieldnames=keys)
+                csv_data = io.StringIO()
+                writer = csv.DictWriter(csv_data, fieldnames=keys)
                 writer.writeheader()
-                writer.writerows(items)
+                writer.writerows(items_dict)
                 # //processed_data = processed_data.to_csv(index=False)
                 output_filename = f"{filename}"
                 return send_file(
-                    io.BytesIO(writer),
+                    io.BytesIO(csv_data.getvalue().encode()),
                     mimetype="text/csv",
                     as_attachment=True,
                     download_name=f"{output_filename}.csv",
